@@ -153,11 +153,14 @@ function hitungTelat(jamIn, stdIn) {
 
     let totalIn = inH * 60 + inM;
     let totalStd = stdH * 60 + stdM;
-    let toleransi = totalStd + 10;
 
-    if(totalIn <= toleransi) return "00:00";
+    // Jika masuk tepat waktu atau lebih awal
+    if(totalIn <= totalStd) return "00:00";
 
+    // Hitung selisih keterlambatan (tanpa toleransi)
     let diff = totalIn - totalStd;
+
+    // Pengurangan otomatis 1 jam jika melewati jam istirahat siang (12:00 - 13:00)
     if(totalIn > 12 * 60) {
         let deduct = Math.min(60, Math.max(0, Math.min(totalIn, 13 * 60) - 12 * 60));
         diff -= deduct;
@@ -179,7 +182,7 @@ function updateAbsenCell(empId, tgl, key, val) {
         dataAbsensi[empId][tgl][key] = val;
     }
     renderAbsensiTable();
-    saveToLocalStorage;
+    saveToLocalStorage();
 }
 
 function updateStatusManual(empId, tgl, val) {
@@ -599,10 +602,43 @@ function animateHujan() {
     requestAnimationFrame(animateHujan);
 }
 
+// FUNGSI TOGGLE HIDE / SHOW SIDEBAR
+function toggleSidebar() {
+    document.body.classList.toggle('sidebar-collapsed');
+    
+    // Simpan status pilihan pengguna ke LocalStorage agar tetap bertahan saat refresh
+    const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+    localStorage.setItem('ACI_SIDEBAR_COLLAPSED', isCollapsed);
+}
+
+// Cek status sidebar saat halaman dimuat
+document.addEventListener('DOMContentLoaded', () => {
+    const isCollapsed = localStorage.getItem('ACI_SIDEBAR_COLLAPSED') === 'true';
+    if (isCollapsed) {
+        document.body.classList.add('sidebar-collapsed');
+    }
+});
+
+// FUNGSI TOGGLE KLIK DROPDOWN HAPUS IMPORT
+function toggleHapusDropdown(event) {
+    event.stopPropagation();
+    let container = document.getElementById('dropdownHapusContainer');
+    if (container) {
+        container.classList.toggle('active');
+    }
+}
+
+// TUTUP DROPDOWN SAAT KLIK DI LUAR
+window.addEventListener('click', function(e) {
+    let container = document.getElementById('dropdownHapusContainer');
+    if (container && !container.contains(e.target)) {
+        container.classList.remove('active');
+    }
+});
+
+
 // Jalankan Animasi
 animateHujan();
-
-
 // INIT PROGRAM
 initDataAbsensi();         // Siapkan struktur awal data
 loadFromLocalStorage();   // Muat data lama dari browser jika ada
