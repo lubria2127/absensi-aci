@@ -273,6 +273,198 @@
             overflow-y: auto;
         }
 
+        /* EFEK TRANSISI SIDEBAR & MAIN CONTENT */
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+
+        .main-content {
+            transition: all 0.3s ease;
+        }
+
+        /* KELAS KETIKA SIDEBAR DI-HIDE */
+        body.sidebar-collapsed .sidebar {
+            margin-left: -260px; /* Sembunyikan sidebar ke kiri */
+        }
+
+        /* TOMBOL TOGGLE HOVER EFFECT */
+        .btn-toggle-sidebar {
+            background: var(--pink-main);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 15px;
+            transition: background 0.2s;
+        }
+
+        .btn-toggle-sidebar:hover {
+            background: var(--pink-dark);
+        }
+        /* FIX DROPDOWN HAPUS Z-INDEX & DISPLAY */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+            z-index: 100 !important;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: #ffffff;
+            min-width: 220px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            border-radius: 10px;
+            z-index: 101 !important;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        /* Buka dropdown saat di-hover ATAU saat memiliki class active (di-klik) */
+        .dropdown:hover .dropdown-content,
+        .dropdown.active .dropdown-content {
+            display: block !important;
+        }
+
+        .dropdown-content a {
+            color: var(--text-main);
+            padding: 10px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .dropdown-content a:hover {
+            background-color: var(--pink-soft);
+            color: #d63031;
+        }
+
+        /* ===============================================
+        FREEZE HEADER TABEL DATA KARYAWAN
+        =============================================== */
+        #viewKaryawan .table-responsive {
+            max-height: 65vh;
+            overflow-y: auto;
+        }
+
+        #viewKaryawan table {
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+        }
+
+        #viewKaryawan th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background-color: #ffe6ec !important;
+            color: #2d3436;
+            border-bottom: 2px solid #ffd8e1 !important;
+            border-top: 1px solid #ffd8e1 !important;
+        }
+
+        #viewKaryawan td {
+            border-bottom: 1px solid #ffd8e1 !important;
+        }
+
+       /* ===============================================
+   FIX BORDER HEADER & FREEZE COLUMNS (PRESISI)
+   =============================================== */
+
+/* 1. Kunci Model Tabel Tanpa Celah Transparan */
+#tblAbsensi {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+/* Garis Border Standar untuk Seluruh Sel */
+#tblAbsensi th, 
+#tblAbsensi td {
+    border-right: 1px solid var(--border-color) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* 2. HEADER BARIS 1 (Tgl 15, Tgl 16, dst.) */
+#tblAbsensi #trHeaderTgl th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: #ffe6ec !important;
+    border-top: 1px solid var(--border-color) !important;
+}
+
+/* 3. HEADER BARIS 2 (IN, OUT, TELAT) - FIX PERGESERAN TOP */
+#tblAbsensi #trHeaderInOut th {
+    position: sticky;
+    top: 35px; /* Disesuaikan agar rapat sempurna dengan baris 1 */
+    z-index: 20;
+    background-color: #ffe6ec !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Reset Khusus: Pastikan Sub-Header IN, OUT, TELAT di baris 2 TIDAK KENA GARIS MERAH */
+#tblAbsensi #trHeaderInOut th:nth-child(3) {
+    border-right: 1px solid var(--border-color) !important;
+}
+
+/* 4. FREEZE HORISONTAL: KOLOM 1 (NO) */
+#tblAbsensi #trHeaderTgl th:nth-child(1),
+#tblAbsensi tbody td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    width: 45px;
+    min-width: 45px;
+}
+
+/* 5. FREEZE HORISONTAL: KOLOM 2 (NAMA KARYAWAN) */
+#tblAbsensi #trHeaderTgl th:nth-child(2),
+#tblAbsensi tbody td:nth-child(2) {
+    position: sticky;
+    left: 45px;
+    width: 180px;
+    min-width: 180px;
+}
+
+/* 6. FREEZE HORISONTAL: KOLOM 3 (JAM KERJA) - GARIS PEMISAH MERAH HANYA DI SINI */
+#tblAbsensi #trHeaderTgl th:nth-child(3),
+#tblAbsensi tbody td:nth-child(3) {
+    position: sticky;
+    left: 225px;
+    width: 80px;
+    min-width: 80px;
+    border-right: 2px solid var(--pink-dark) !important; /* HANYA KENA DINO, NAMA, & JAM KERJA */
+}
+
+/* 7. LATAR PADAT PUTIH UNTUK ISI DATA AGAR TERTUTUP TOTAL */
+#tblAbsensi tbody td:nth-child(1),
+#tblAbsensi tbody td:nth-child(2),
+#tblAbsensi tbody td:nth-child(3) {
+    background-color: #ffffff !important;
+    z-index: 15;
+}
+
+/* 8. PRIORITAS Z-INDEX PALING ATAS UNTUK 3 HEADER KIRI ATAS */
+#tblAbsensi #trHeaderTgl th:nth-child(1),
+#tblAbsensi #trHeaderTgl th:nth-child(2),
+#tblAbsensi #trHeaderTgl th:nth-child(3) {
+    z-index: 50 !important;
+    background-color: #ffe6ec !important;
+}
+
+/* Hover Effect */
+#tblAbsensi tr:hover td:nth-child(1),
+#tblAbsensi tr:hover td:nth-child(2),
+#tblAbsensi tr:hover td:nth-child(3) {
+    background-color: #fff9fa !important;
+}
+
         .modal-header { font-size: 16px; font-weight: 700; margin-bottom: 15px; color: var(--pink-dark); }
         .form-control { margin-bottom: 12px; }
         .form-control label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
@@ -308,6 +500,10 @@
         <!-- HEADER TOP -->
         <div class="header-top">
             <div class="header-title">
+                <!-- TOMBOL TOGGLE SIDEBAR -->
+                <button class="btn-toggle-sidebar" onclick="toggleSidebar()" title="Sembunyikan/Tampilkan Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <h2 id="pageTitle">Data Karyawan</h2>
                 <p id="pageSub">Kelola daftar karyawan, departemen, dan acuan jam kerja</p>
             </div>
@@ -357,15 +553,15 @@
                         <button class="btn btn-blue" onclick="document.getElementById('inputLogFile').click()"><i class="fa-solid fa-file-import"></i> Import Log Finger (.xls)</button>
                         
                         <!-- Lencana Info Nama File Import & Tombol Hapus -->
-                        <!-- GANTI TOMBOL / BADGE HAPUS LAMA DENGAN DROPDOWN INI -->
-<div class="dropdown" id="dropdownHapusContainer" style="display:none;">
-    <button class="btn btn-red">
-        <i class="fa-solid fa-trash"></i> Kelola/Hapus Import <i class="fa-solid fa-chevron-down"></i>
-    </button>
-    <div class="dropdown-content" id="listImportedFiles">
-        <!-- Opsi file import akan dirender secara dinamis oleh JS -->
-    </div>
-</div>
+                        <!-- DROPDOWN KELOLA / HAPUS IMPORT -->
+                        <div class="dropdown" id="dropdownHapusContainer" style="display:none;">
+                            <button class="btn btn-red" onclick="toggleHapusDropdown(event)">
+                                <i class="fa-solid fa-trash"></i> Kelola/Hapus Import <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                            <div class="dropdown-content" id="listImportedFiles">
+                                <!-- Opsi file import akan dirender secara dinamis oleh JS -->
+                            </div>
+                        </div>
 
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <label style="font-size: 13px;"><b>Tampilkan Absensi:</b></label>
