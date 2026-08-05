@@ -2,7 +2,8 @@
 let dataAbsensi = {};
 let importedFilesList = []; // Menyimpan daftar nama file yang sudah di-import
 let dataAbsensiPerFile = {}; // Menyimpan data log spesifik per file: { "fileA.xls": { empId: { tgl: { in, out } } } }
-
+let periodeText = ""; // Menyimpan teks periode misal "2026-07-15 ~ 2026-08-04"
+let tglStartYear = 2026, tglStartMonth = 6; // Juni (0-indexed = 6) untuk 15 Juli
 // Generating Tanggal Periode 15 s.d. 14
 const listTanggal = [];
 for(let i=15; i<=31; i++) listTanggal.push(i);
@@ -79,6 +80,14 @@ function deleteKaryawan(id) {
 }
 
 function renderAbsensiTable() {
+    // Tampilkan Periode jika ada
+    let badge = document.getElementById('badgePeriode');
+    let txt = document.getElementById('textPeriode');
+    if (periodeText && badge && txt) {
+        txt.innerText = periodeText;
+        badge.style.display = 'inline-flex';
+    }
+
     let filterDept = document.getElementById('filterAbsensiDept').value;
     let trTgl = document.getElementById('trHeaderTgl');
     let trInOut = document.getElementById('trHeaderInOut');
@@ -87,12 +96,27 @@ function renderAbsensiTable() {
     trInOut.innerHTML = '';
 
     listTanggal.forEach(tgl => {
+        // Deteksi Hari (Sabtu / Minggu)
+        // Tanggal 15-31 pakai bulan pertama, Tanggal 1-14 pakai bulan berikutnya
+        let monthOffset = (tgl >= 15) ? 0 : 1;
+        let dateObj = new Date(tglStartYear, tglStartMonth + monthOffset, tgl);
+        let dayOfWeek = dateObj.getDay(); // 0 = Minggu, 6 = Sabtu
+
+        let dayClass = "";
+        if (dayOfWeek === 6) dayClass = "col-sabtu";
+        else if (dayOfWeek === 0) dayClass = "col-minggu";
+
         let thTgl = document.createElement('th');
         thTgl.colSpan = 3;
+        if (dayClass) thTgl.classList.add(dayClass);
         thTgl.innerText = `Tgl ${tgl}`;
         trTgl.appendChild(thTgl);
 
-        trInOut.innerHTML += '<th>IN</th><th>OUT</th><th>TELAT</th>';
+        trInOut.innerHTML += `
+            <th class="${dayClass}">IN</th>
+            <th class="${dayClass}">OUT</th>
+            <th class="${dayClass}">TELAT</th>
+        `;
     });
 
     let tbody = document.getElementById('tblAbsensiBody');
@@ -105,36 +129,48 @@ function renderAbsensiTable() {
         let html = `<td>${idx+1}</td><td style="text-align:left; font-weight:600;">${k.nama}</td><td>${k.jamIn}</td>`;
 
         listTanggal.forEach(tgl => {
+            let monthOffset = (tgl >= 15) ? 0 : 1;
+            let dateObj = new Date(tglStartYear, tglStartMonth + monthOffset, tgl);
+            let dayOfWeek = dateObj.getDay();
+
+            let dayClass = "";
+            if (dayOfWeek === 6) dayClass = "col-sabtu";
+            else if (dayOfWeek === 0) dayClass = "col-minggu";
+
             let d = (dataAbsensi[k.id] && dataAbsensi[k.id][tgl]) ? dataAbsensi[k.id][tgl] : { in:"", out:"", status:"" };
             let lateStr = hitungTelat(d.in, k.jamIn);
 
             if(d.status) {
                 html += `
-                    <td colspan="3" class="cell-status-merged">
+                    <td colspan="3" class="cell-status-merged ${dayClass}">
                         <select onchange="updateStatusManual(${k.id}, ${tgl}, this.value)" style="font-weight:bold; color:#d63031;">
                             <option value="${d.status}" selected>-- ${d.status} --</option>
                             <option value="">(Reset Normal IN/OUT)</option>
+                            <option value="SURAT DOKTER">SURAT DOKTER</option>
                             <option value="SAKIT">SAKIT</option>
                             <option value="IZIN">IZIN</option>
+                            <option value="ALFA">ALFA</option>
                             <option value="CUTI">CUTI</option>
+                            <option value="LUAR KOTA">LUAR KOTA</option>
+                            <option value="GANTI HARI">GANTI HARI</option>
                             <option value="OFF">OFF</option>
-                            <option value="JKT">JKT</option>
-                            <option value="ALFA">ALFA / MABK</option>
                         </select>
                     </td>`;
             } else {
                 html += `
-                    <td><input type="text" value="${d.in || ''}" placeholder="IN" style="width:40px;" onchange="updateAbsenCell(${k.id}, ${tgl}, 'in', this.value)"></td>
-                    <td><input type="text" value="${d.out || ''}" placeholder="OUT" style="width:40px;" onchange="updateAbsenCell(${k.id}, ${tgl}, 'out', this.value)"></td>
-                    <td style="font-size:11px; color:#d63031;">
+                    <td class="${dayClass}"><input type="text" value="${d.in || ''}" placeholder="IN" style="width:40px;" onchange="updateAbsenCell(${k.id}, ${tgl}, 'in', this.value)"></td>
+                    <td class="${dayClass}"><input type="text" value="${d.out || ''}" placeholder="OUT" style="width:40px;" onchange="updateAbsenCell(${k.id}, ${tgl}, 'out', this.value)"></td>
+                    <td class="${dayClass}" style="font-size:11px; color:#d63031;">
                         ${lateStr ? lateStr : `<select onchange="updateStatusManual(${k.id}, ${tgl}, this.value)" style="font-size:10px; color:#8c7b83;">
                             <option value="">-</option>
+                            <option value="SURAT DOKTER">SURAT DOKTER</option>
                             <option value="SAKIT">SAKIT</option>
                             <option value="IZIN">IZIN</option>
-                            <option value="CUTI">CUTI</option>
-                            <option value="OFF">OFF</option>
-                            <option value="JKT">JKT</option>
                             <option value="ALFA">ALFA</option>
+                            <option value="CUTI">CUTI</option>
+                            <option value="LUAR KOTA">LUAR KOTA</option>
+                            <option value="GANTI HARI">GANTI HARI</option>
+                            <option value="OFF">OFF</option>
                         </select>`}
                     </td>
                 `;
@@ -199,7 +235,6 @@ function updateStatusManual(empId, tgl, val) {
 }
 
 // IMPORT LOG MESIN & MENAMPILKAN NAMA BERKAS
-// PERBAHARUI FUNGSI IMPORT LOG FINGER
 function importLogFinger(input) {
     let file = input.files[0];
     if(!file) return;
@@ -214,6 +249,20 @@ function importLogFinger(input) {
         let wb = XLSX.read(bytes, {type:'array'});
         let ws = wb.Sheets['Lap. Log Absen'] || wb.Sheets[wb.SheetNames[0]];
         let json = XLSX.utils.sheet_to_json(ws, {header:1});
+
+        // ===============================================
+        // BACA PERIODE DARI CELL C3 (Baris Indeks 2, Kolom Indeks 2)
+        // ===============================================
+        if (json[2] && json[2][2]) {
+            periodeText = String(json[2][2]).trim();
+            
+            // Ekstrak Tahun & Bulan dari format "2026-07-15 ~ 2026-08-04"
+            let match = periodeText.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if(match) {
+                tglStartYear = parseInt(match[1]);
+                tglStartMonth = parseInt(match[2]) - 1; // Konversi bulan ke format 0-indexed JS (Januari=0, Juli=6)
+            }
+        }
 
         dataAbsensiPerFile[file.name] = {};
 
@@ -512,17 +561,19 @@ function saveToLocalStorage() {
     localStorage.setItem('ACI_DATA_ABSENSI', JSON.stringify(dataAbsensi));
     localStorage.setItem('ACI_IMPORTED_FILES', JSON.stringify(importedFilesList));
     localStorage.setItem('ACI_DATA_PER_FILE', JSON.stringify(dataAbsensiPerFile));
+    localStorage.setItem('ACI_PERIODE_TEXT', periodeText); // Simpan periode
 }
 
-// AMBIL DATA DARI BROWSER
 function loadFromLocalStorage() {
     let savedAbsensi = localStorage.getItem('ACI_DATA_ABSENSI');
     let savedFiles = localStorage.getItem('ACI_IMPORTED_FILES');
     let savedPerFile = localStorage.getItem('ACI_DATA_PER_FILE');
+    let savedPeriode = localStorage.getItem('ACI_PERIODE_TEXT');
 
     if (savedAbsensi) dataAbsensi = JSON.parse(savedAbsensi);
     if (savedFiles) importedFilesList = JSON.parse(savedFiles);
     if (savedPerFile) dataAbsensiPerFile = JSON.parse(savedPerFile);
+    if (savedPeriode) periodeText = savedPeriode;
 }
 
 // ===============================================
