@@ -374,96 +374,114 @@
         }
 
        /* ===============================================
-   FIX BORDER HEADER & FREEZE COLUMNS (PRESISI)
-   =============================================== */
+        FIX BORDER HEADER & FREEZE COLUMNS (PRESISI)
+        =============================================== */
 
-/* 1. Kunci Model Tabel Tanpa Celah Transparan */
-#tblAbsensi {
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-}
+        /* 1. Kunci Model Tabel Tanpa Celah Transparan */
+        #tblAbsensi {
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+        }
 
-/* Garis Border Standar untuk Seluruh Sel */
-#tblAbsensi th, 
-#tblAbsensi td {
-    border-right: 1px solid var(--border-color) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-}
+        /* Garis Border Standar untuk Seluruh Sel */
+        #tblAbsensi th, 
+        #tblAbsensi td {
+            border-right: 1px solid var(--border-color) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+        }
 
-/* 2. HEADER BARIS 1 (Tgl 15, Tgl 16, dst.) */
-#tblAbsensi #trHeaderTgl th {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background-color: #ffe6ec !important;
-    border-top: 1px solid var(--border-color) !important;
-}
+        /* 2. HEADER BARIS 1 (Tgl 15, Tgl 16, dst.) */
+        #tblAbsensi #trHeaderTgl th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background-color: #ffe6ec !important;
+            border-top: 1px solid var(--border-color) !important;
+        }
 
-/* 3. HEADER BARIS 2 (IN, OUT, TELAT) - FIX PERGESERAN TOP */
-#tblAbsensi #trHeaderInOut th {
-    position: sticky;
-    top: 35px; /* Disesuaikan agar rapat sempurna dengan baris 1 */
-    z-index: 20;
-    background-color: #ffe6ec !important;
-    border-top: 1px solid var(--border-color) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-}
+        /* 3. HEADER BARIS 2 (IN, OUT, TELAT) - FIX PERGESERAN TOP */
+        #tblAbsensi #trHeaderInOut th {
+            position: sticky;
+            top: 35px; /* Disesuaikan agar rapat sempurna dengan baris 1 */
+            z-index: 20;
+            background-color: #ffe6ec !important;
+            border-top: 1px solid var(--border-color) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+        }
 
-/* Reset Khusus: Pastikan Sub-Header IN, OUT, TELAT di baris 2 TIDAK KENA GARIS MERAH */
-#tblAbsensi #trHeaderInOut th:nth-child(3) {
-    border-right: 1px solid var(--border-color) !important;
-}
+        /* Reset Khusus: Pastikan Sub-Header IN, OUT, TELAT di baris 2 TIDAK KENA GARIS MERAH */
+        #tblAbsensi #trHeaderInOut th:nth-child(3) {
+            border-right: 1px solid var(--border-color) !important;
+        }
 
-/* 4. FREEZE HORISONTAL: KOLOM 1 (NO) */
-#tblAbsensi #trHeaderTgl th:nth-child(1),
-#tblAbsensi tbody td:nth-child(1) {
-    position: sticky;
-    left: 0;
-    width: 45px;
-    min-width: 45px;
-}
+        /* 4. FREEZE HORISONTAL: KOLOM 1 (NO) */
+        #tblAbsensi #trHeaderTgl th:nth-child(1),
+        #tblAbsensi tbody td:nth-child(1) {
+            position: sticky;
+            left: 0;
+            width: 45px;
+            min-width: 45px;
+        }
 
-/* 5. FREEZE HORISONTAL: KOLOM 2 (NAMA KARYAWAN) */
-#tblAbsensi #trHeaderTgl th:nth-child(2),
-#tblAbsensi tbody td:nth-child(2) {
-    position: sticky;
-    left: 45px;
-    width: 180px;
-    min-width: 180px;
-}
+        /* 5. FREEZE HORISONTAL: KOLOM 2 (NAMA KARYAWAN) */
+        #tblAbsensi #trHeaderTgl th:nth-child(2),
+        #tblAbsensi tbody td:nth-child(2) {
+            position: sticky;
+            left: 45px;
+            width: 180px;
+            min-width: 180px;
+        }
 
-/* 6. FREEZE HORISONTAL: KOLOM 3 (JAM KERJA) - GARIS PEMISAH MERAH HANYA DI SINI */
-#tblAbsensi #trHeaderTgl th:nth-child(3),
-#tblAbsensi tbody td:nth-child(3) {
-    position: sticky;
-    left: 225px;
-    width: 80px;
-    min-width: 80px;
-    border-right: 2px solid var(--pink-dark) !important; /* HANYA KENA DINO, NAMA, & JAM KERJA */
-}
+        /* 6. FREEZE HORISONTAL: KOLOM 3 (JAM KERJA) - GARIS PEMISAH MERAH HANYA DI SINI */
+        #tblAbsensi #trHeaderTgl th:nth-child(3),
+        #tblAbsensi tbody td:nth-child(3) {
+            position: sticky;
+            left: 225px;
+            width: 80px;
+            min-width: 80px;
+            border-right: 2px solid var(--pink-dark) !important; /* HANYA KENA DINO, NAMA, & JAM KERJA */
+        }
 
-/* 7. LATAR PADAT PUTIH UNTUK ISI DATA AGAR TERTUTUP TOTAL */
-#tblAbsensi tbody td:nth-child(1),
-#tblAbsensi tbody td:nth-child(2),
-#tblAbsensi tbody td:nth-child(3) {
-    background-color: #ffffff !important;
-    z-index: 15;
-}
+        /* 7. LATAR PADAT PUTIH UNTUK ISI DATA AGAR TERTUTUP TOTAL */
+        #tblAbsensi tbody td:nth-child(1),
+        #tblAbsensi tbody td:nth-child(2),
+        #tblAbsensi tbody td:nth-child(3) {
+            background-color: #ffffff !important;
+            z-index: 15;
+        }
 
-/* 8. PRIORITAS Z-INDEX PALING ATAS UNTUK 3 HEADER KIRI ATAS */
-#tblAbsensi #trHeaderTgl th:nth-child(1),
-#tblAbsensi #trHeaderTgl th:nth-child(2),
-#tblAbsensi #trHeaderTgl th:nth-child(3) {
-    z-index: 50 !important;
-    background-color: #ffe6ec !important;
-}
+        /* 8. PRIORITAS Z-INDEX PALING ATAS UNTUK 3 HEADER KIRI ATAS */
+        #tblAbsensi #trHeaderTgl th:nth-child(1),
+        #tblAbsensi #trHeaderTgl th:nth-child(2),
+        #tblAbsensi #trHeaderTgl th:nth-child(3) {
+            z-index: 50 !important;
+            background-color: #ffe6ec !important;
+        }
 
-/* Hover Effect */
-#tblAbsensi tr:hover td:nth-child(1),
-#tblAbsensi tr:hover td:nth-child(2),
-#tblAbsensi tr:hover td:nth-child(3) {
-    background-color: #fff9fa !important;
-}
+        /* Hover Effect */
+        #tblAbsensi tr:hover td:nth-child(1),
+        #tblAbsensi tr:hover td:nth-child(2),
+        #tblAbsensi tr:hover td:nth-child(3) {
+            background-color: #fff9fa !important;
+        }
+
+        /* WARNA TANGGAL SABTU & MINGGU */
+        .col-sabtu {
+            background-color: #fff2e6 !important; /* Warna orange/peach soft untuk Sabtu */
+        }
+
+        .col-minggu {
+            background-color: #ffe0e0 !important; /* Warna merah soft lebih gelap untuk Minggu */
+        }
+
+        /* Header Sabtu & Minggu */
+        #trHeaderTgl th.col-sabtu, #trHeaderInOut th.col-sabtu {
+            background-color: #ffd8a8 !important;
+        }
+
+        #trHeaderTgl th.col-minggu, #trHeaderInOut th.col-minggu {
+            background-color: #ffb8b8 !important;
+        }
 
         .modal-header { font-size: 16px; font-weight: 700; margin-bottom: 15px; color: var(--pink-dark); }
         .form-control { margin-bottom: 12px; }
@@ -570,6 +588,11 @@
                                 <option value="HEAD OFFICE LANTAI 3" selected>HEAD OFFICE LANTAI 3</option>
                                 <option value="PRODUKSI">PRODUKSI</option>
                             </select>
+
+                            <!-- BADGE PERIODE TANGGAL FROM C3 -->
+                            <span id="badgePeriode" class="file-info-badge" style="display:none; background:#d63031;">
+                                <i class="fa-solid fa-calendar-days"></i> Periode: <strong id="textPeriode">-</strong>
+                            </span>
                         </div>
                     </div>
 
