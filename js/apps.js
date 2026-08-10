@@ -648,13 +648,30 @@ function saveToLocalStorage() {
 }
 
 function loadFromLocalStorage() {
-    let savedKaryawan = localStorage.getItem('ACI_LIST_KARYAWAN'); // <-- Memuat urutan array
+    let savedKaryawan = localStorage.getItem('ACI_LIST_KARYAWAN');
     let savedAbsensi = localStorage.getItem('ACI_DATA_ABSENSI');
     let savedFiles = localStorage.getItem('ACI_IMPORTED_FILES');
     let savedPerFile = localStorage.getItem('ACI_DATA_PER_FILE');
     let savedPeriode = localStorage.getItem('ACI_PERIODE_TEXT');
 
-    if (savedKaryawan) listKaryawan = JSON.parse(savedKaryawan);
+    if (savedKaryawan && typeof listKaryawan !== 'undefined') {
+        let parsedSaved = JSON.parse(savedKaryawan);
+
+        // 1. Hapus karyawan dari LocalStorage jika ID-nya sudah dihilangkan dari dataKaryawan.js
+        let updatedList = parsedSaved.filter(savedItem => 
+            listKaryawan.some(masterItem => masterItem.id === savedItem.id)
+        );
+
+        // 2. Tambahkan karyawan baru jika ada ID baru di dataKaryawan.js yang belum ada di LocalStorage
+        listKaryawan.forEach(masterItem => {
+            if (!updatedList.some(savedItem => savedItem.id === masterItem.id)) {
+                updatedList.push(masterItem);
+            }
+        });
+
+        listKaryawan = updatedList;
+    }
+
     if (savedAbsensi) dataAbsensi = JSON.parse(savedAbsensi);
     if (savedFiles) importedFilesList = JSON.parse(savedFiles);
     if (savedPerFile) dataAbsensiPerFile = JSON.parse(savedPerFile);
