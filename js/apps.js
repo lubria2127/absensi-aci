@@ -55,7 +55,16 @@ function renderKaryawanTable() {
         let bruto = (k.gapok || 0) + (k.tunj || 0);
         let tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${idx + 1}</td>
+            <!-- INPUT ANGKA UNTUK MENGUBAH URUTAN LANGSUNG -->
+            <td>
+                <input type="number" 
+                       value="${idx + 1}" 
+                       min="1" 
+                       max="${filtered.length}" 
+                       onchange="setPositionKaryawan(${k.id}, this.value)" 
+                       style="width: 50px; text-align: center; border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 4px; font-weight: 600; color: var(--pink-dark);"
+                       title="Ketik nomor urut baru lalu tekan Enter/Klik di luar">
+            </td>
             <td style="text-align:left; font-weight:600;">${k.nama}</td>
             <td>${k.jabatan}</td>
             <td>${k.finger}</td>
@@ -70,6 +79,52 @@ function renderKaryawanTable() {
         `;
         tbody.appendChild(tr);
     });
+}
+
+// FUNGSI PINDAH URUTAN SPESIFIK (DENGAN FIX PERGESERAN INDEKS)
+function setPositionKaryawan(id, newPos) {
+    let filterVal = document.getElementById('filterDept').value;
+    let filtered = listKaryawan.filter(k => filterVal === 'ALL' || k.dept === filterVal);
+    
+    let currIdx = filtered.findIndex(k => k.id === id);
+    if (currIdx === -1) return;
+
+    let targetPos = parseInt(newPos);
+    
+    // Batasi input agar aman
+    if (isNaN(targetPos) || targetPos < 1) targetPos = 1;
+    if (targetPos > filtered.length) targetPos = filtered.length;
+
+    let targetIdx = targetPos - 1;
+    if (currIdx === targetIdx) return; // Tidak ada perubahan jika nomor sama
+
+    let itemToMove = filtered[currIdx];
+
+    // 1. Hapus item dari array utama
+    let globalFromIdx = listKaryawan.findIndex(k => k.id === itemToMove.id);
+    listKaryawan.splice(globalFromIdx, 1);
+
+    // 2. Tentukan posisi sisip baru
+    if (filterVal === 'ALL') {
+        // Jika menampilkan semua karyawan, langsung sisipkan ke targetIdx
+        listKaryawan.splice(targetIdx, 0, itemToMove);
+    } else {
+        // Jika sedang memfilter departemen spesifik
+        let updatedFiltered = listKaryawan.filter(k => k.dept === filterVal);
+        if (targetIdx >= updatedFiltered.length) {
+            let lastInDept = updatedFiltered[updatedFiltered.length - 1];
+            let globalInsertIdx = listKaryawan.findIndex(k => k.id === lastInDept.id) + 1;
+            listKaryawan.splice(globalInsertIdx, 0, itemToMove);
+        } else {
+            let targetInFiltered = updatedFiltered[targetIdx];
+            let globalInsertIdx = listKaryawan.findIndex(k => k.id === targetInFiltered.id);
+            listKaryawan.splice(globalInsertIdx, 0, itemToMove);
+        }
+    }
+
+    // 3. Simpan dan render ulang
+    saveToLocalStorage();
+    renderKaryawanTable();
 }
 
 function deleteKaryawan(id) {
@@ -282,14 +337,39 @@ function importLogFinger(input) {
                                 let dayNum = parseInt(tglHead);
                                 let timeStr = String(rawTime).trim();
                                 
-                                let inStr="", outStr="";
-                                if(timeStr.length === 10) {
-                                    inStr = timeStr.substring(0,5);
-                                    outStr = timeStr.substring(5,10);
-                                } else if(timeStr.length === 5) {
-                                    let h = parseInt(timeStr.substring(0,2));
-                                    if(h < 13) inStr = timeStr;
-                                    else outStr = timeStr;
+                                // AMBIL SEMUA FORMAT JAM (HH:MM) YANG TERTULIS DENGAN REGEX
+                                let times = timeStr.match(/\d{2}:\d{2}/g);
+                                let inStr = "", outStr = "";
+
+                                if (times && times.length > 0) {
+                                    if (times.length === 1) {
+                                        // Jika hanya ada 1 record jam
+                                        let h = parseInt(times[0].substring(0, 2));
+                                        if (h < 13) inStr = times[0];
+                                        else outStr = times[0];
+                                    } else {
+                                        // Jika ada 2 record jam atau lebih (akibat double/multiple scan)
+                                        let firstTime = times[0];                   // Jam pendaftaran paling awal
+                                        let lastTime = times[times.length - 1];     // Jam pendaftaran paling akhir
+
+                                        let [fH, fM] = firstTime.split(':').map(Number);
+                                        let [lH, lM] = lastTime.split(':').map(Number);
+                                        let firstMins = fH * 60 + fM;
+                                        let lastMins = lH * 60 + lM;
+
+                                        if (fH < 13) {
+                                            inStr = firstTime; // Jam paling awal diambil sebagai jam IN
+                                            
+                                            // Jam OUT hanya diambil jika jam scan terakhir berjarak minimal 1 jam (60 menit)
+                                            // atau dilakukan pada sore/pulang kerja (>= 12:00)
+                                            if (lastMins - firstMins >= 60 || lH >= 12) {
+                                                outStr = lastTime;
+                                            }
+                                        } else {
+                                            // Jika semua scan terjadi di atas jam 13:00
+                                            outStr = lastTime;
+                                        }
+                                    }
                                 }
 
                                 // Simpan ke data utama
@@ -556,20 +636,25 @@ function saveKaryawan() {
     renderKaryawanTable();
     closeModal();
 }
+
+
 // SIMPAN DATA KE BROWSER
 function saveToLocalStorage() {
+    localStorage.setItem('ACI_LIST_KARYAWAN', JSON.stringify(listKaryawan)); // <-- Menyimpan urutan array
     localStorage.setItem('ACI_DATA_ABSENSI', JSON.stringify(dataAbsensi));
     localStorage.setItem('ACI_IMPORTED_FILES', JSON.stringify(importedFilesList));
     localStorage.setItem('ACI_DATA_PER_FILE', JSON.stringify(dataAbsensiPerFile));
-    localStorage.setItem('ACI_PERIODE_TEXT', periodeText); // Simpan periode
+    localStorage.setItem('ACI_PERIODE_TEXT', periodeText);
 }
 
 function loadFromLocalStorage() {
+    let savedKaryawan = localStorage.getItem('ACI_LIST_KARYAWAN'); // <-- Memuat urutan array
     let savedAbsensi = localStorage.getItem('ACI_DATA_ABSENSI');
     let savedFiles = localStorage.getItem('ACI_IMPORTED_FILES');
     let savedPerFile = localStorage.getItem('ACI_DATA_PER_FILE');
     let savedPeriode = localStorage.getItem('ACI_PERIODE_TEXT');
 
+    if (savedKaryawan) listKaryawan = JSON.parse(savedKaryawan);
     if (savedAbsensi) dataAbsensi = JSON.parse(savedAbsensi);
     if (savedFiles) importedFilesList = JSON.parse(savedFiles);
     if (savedPerFile) dataAbsensiPerFile = JSON.parse(savedPerFile);
