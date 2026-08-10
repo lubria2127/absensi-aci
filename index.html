@@ -483,6 +483,30 @@
             background-color: #ffb8b8 !important;
         }
 
+        /* SIDEBAR NAVIGATION */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            border-right: 2px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 25px 15px;
+            justify-content: space-between; /* Membuat footer terdorong ke paling bawah */
+        }
+
+        /* STYLING FOOTER PEMBUAT */
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border-color);
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--pink-dark);
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
         .modal-header { font-size: 16px; font-weight: 700; margin-bottom: 15px; color: var(--pink-dark); }
         .form-control { margin-bottom: 12px; }
         .form-control label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
@@ -510,6 +534,11 @@
                 <i class="fa-solid fa-file-invoice-dollar"></i> Rekap & Laporan
             </li>
         </ul>
+
+        <!-- TULISAN PEMBUAT DI BAGIAN BAWAH SIDEBAR -->
+        <div class="sidebar-footer">
+            Dibuat oleh pacar aci paling ganteng ❤️
+        </div>
     </div>
 
     <!-- MAIN CONTENT -->
