@@ -678,7 +678,9 @@ window.addEventListener('resize', () => {
 // 1. DAFTAR PATH FOTO PNG
 const pathFotoList = [
     'img/foto1.png',
+    'img/Aci2.png',
     'img/foto2.png',
+    'img/Aci1.png'
 
 ];
 
@@ -688,7 +690,7 @@ const loadedImages = pathFotoList.map(src => {
     return img;
 });
 
-const totalFoto = 8; 
+const totalFoto = 10; 
 const listPartikel = [];
 
 // 2. INISIALISASI PARTIKEL (DENGAN PROPERTI OPACITY TEGAS)
