@@ -9,9 +9,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- SweetAlert2 Modern Pop-up -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- SheetJS untuk Export & Import Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
+    
+    <!-- Firebase App & Firestore SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
     <!-- Data Karyawan Eksternal -->
     <script src="js/dataKaryawan.js"></script>
 
@@ -40,6 +47,11 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
+        }
+        .swal2-popup {
+            border-radius: 18px !important;
+            border: 2px solid var(--border-color) !important;
+            font-family: 'Poppins', sans-serif !important;
         }
 
         /* SIDEBAR NAVIGATION */
@@ -533,6 +545,9 @@
             <li class="nav-item" onclick="switchView('laporan')">
                 <i class="fa-solid fa-file-invoice-dollar"></i> Rekap & Laporan
             </li>
+            <li class="nav-item" onclick="switchView('tutorial')">
+                <i class="fa-solid fa-book-open"></i> Panduan & Tutorial
+            </li>
         </ul>
 
         <!-- TULISAN PEMBUAT DI BAGIAN BAWAH SIDEBAR -->
@@ -665,6 +680,150 @@
                     <button class="btn btn-green" onclick="exportKeExcel('ALL')"><i class="fa-solid fa-download"></i> Download Excel Semua Karyawan</button>
                 </div>
             </div>
+        </div>
+
+        <!-- VIEW PANDUAN & TUTORIAL -->
+        <div id="viewTutorial" class="view-section">
+            <!-- KARTU PANDUAN PENGGUNAAN SISTEM BUAT ACI -->
+            <div class="card" style="border-left: 4px solid var(--pink-dark);">
+                <h3 style="margin-bottom: 8px; color: var(--pink-dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-heart" style="color: #ff7675;"></i> Panduan Pakai Web Absensi (Biar Aci Gampang)
+                </h3>
+                <p style="font-size: 13px; color: #636e72; margin-bottom: 18px;">
+                    Cara pakainya gampang banget kok sayang, tinggal ikutin 4 langkah santai ini ya:
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                    <!-- Langkah 1 -->
+                    <div style="background: #fff8fa; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div style="font-weight: 700; color: var(--pink-dark); margin-bottom: 8px; font-size: 13px;">
+                            <i class="fa-solid fa-user-gear" style="background: var(--pink-soft); padding: 5px 8px; border-radius: 6px;"></i> 1. Master Data Karyawan
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-color); margin: 0; line-height: 1.6;">
+                            Pastiin kolom <b>Nama Mesin Finger</b> diisi sama persis dengan nama finger scan yang ada di laporan Excel ya sayang, biar jam absensinya otomatis nyambung dan gak nyasar.
+                        </p>
+                    </div>
+
+                    <!-- Langkah 2 -->
+                    <div style="background: #fff8fa; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div style="font-weight: 700; color: var(--pink-dark); margin-bottom: 8px; font-size: 13px;">
+                            <i class="fa-solid fa-file-import" style="background: var(--pink-soft); padding: 5px 8px; border-radius: 6px;"></i> 2. Import Log Fingerprint
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-color); margin: 0; line-height: 1.6;">
+                            Tinggal upload file mentahan dari mesin finger (yang formatnya <i>.xls</i>). Sistemnya pintar kok, bakal otomatis ngebaca periode tanggal dan langsung ngisi semua jam IN/OUT di tabel absensi sayang.
+                        </p>
+                    </div>
+
+                    <!-- Langkah 3 -->
+                    <div style="background: #fff8fa; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div style="font-weight: 700; color: var(--pink-dark); margin-bottom: 8px; font-size: 13px;">
+                            <i class="fa-solid fa-pen-to-square" style="background: var(--pink-soft); padding: 5px 8px; border-radius: 6px;"></i> 3. Koreksi & Update Realtime
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-color); margin: 0; line-height: 1.6;">
+                            Kalau sayang ganti nama finger di data karyawan, jamnya bakal langsung menyesuaikan otomatis. Terus kalau ada yang lupa absen atau salah jam, <b>bisa langsung diketik di kolom IN/OUT</b>. Buat yang <b>SAKIT, IZIN, CUTI, atau SURAT DOKTER</b>, tinggal klik dropdown di <b>kolom TELAT</b> pada tanggal itu ya.
+                        </p>
+                    </div>
+
+                    <!-- Langkah 4 -->
+                    <div style="background: #fff8fa; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div style="font-weight: 700; color: var(--pink-dark); margin-bottom: 8px; font-size: 13px;">
+                            <i class="fa-solid fa-file-excel" style="background: var(--pink-soft); padding: 5px 8px; border-radius: 6px;"></i> 4. Kelola File & Export
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-color); margin: 0; line-height: 1.6;">
+                            Sebelum masuk ke periode bulan baru, jangan lupa bersihin dulu file yang lama lewat menu kelola file ya sayang biar gak numpuk. Kalau rekapannya udah rapi semua, tinggal klik tombol <b>Export Rekap Excel</b> buat di-download.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 18px; padding: 12px 16px; background: #ffffff; border-radius: 10px; border-left: 4px solid var(--pink-dark); font-size: 12px; color: #555;">
+                    <i class="fa-solid fa-cloud-check" style="color: var(--pink-dark);"></i> <b>Tenang aja sayang:</b> Semua yang diubah di sini otomatis tersimpan rapi ke server cloud (Firebase), jadi gak bakal hilang biarpun halamannya di-refresh!
+                </div>
+            </div>
+
+            <!-- KARTU PANDUAN INPUT EXCEL RESMI BUAT ACI -->
+            <div class="card" style="margin-top: 25px; border-left: 4px solid #00b894;">
+                <h3 style="margin-bottom: 8px; color: #00b894; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-heart" style="color: #ff7675;"></i> Panduan Salin ke Excel Resmi (Khusus Buat Aci)
+                </h3>
+                <p style="font-size: 13px; color: #636e72; margin-bottom: 20px;">
+                    Biar gak pusing mindahin datanya, ikuti langkah-langkah simpel ini ya sayang:
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Langkah 1 -->
+                    <div style="background: #f8fffd; border: 1px solid #c8f7ea; border-radius: 12px; padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; color: #00b894; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                            <span style="background: #00b894; color: white; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">1</span>
+                            Buka File Hasil Download & Copy Jamnya
+                        </h4>
+                        <p style="font-size: 12px; color: var(--text-color); margin: 0 0 12px 0; line-height: 1.6;">
+                            Pertama, sayang buka dulu file Excel hasil download dari web ini. Kalau di atasnya muncul bar kuning bertuliskan <b>Enable Editing</b>, diklik dulu ya biar bisa diedit. Setelah itu, blok dan <b>copy kolom IN, OUT, sama TELAT</b> dari tanggal 15 sampai 14 (ingat ya sayang, <b>baris tanggalnya jangan ikut di-copy</b>, cukup ambil jam sama statusnya aja).
+                        </p>
+                        <div style="background: #ffffff; border: 2px dashed #b2bec3; border-radius: 8px; padding: 12px; text-align: center;">
+                            <img src="img/Ke 1.png" alt="Tutorial Langkah 1" style="max-width: 100%; height: auto; border-radius: 6px; display: block; margin: 0 auto;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <span style="display: none; font-size: 12px; color: #b2bec3;"><i class="fa-regular fa-image"></i> Simpan foto ke <code>img/tutorial-step1.png</code></span>
+                        </div>
+                    </div>
+
+                    <!-- Langkah 2 (Bersihkan Warna, Merge, Komen & Bold TANPA Hapus Border) -->
+                        <div style="background: #f8fffd; border: 1px solid #c8f7ea; border-radius: 12px; padding: 16px;">
+                            <h4 style="margin: 0 0 8px 0; color: #00b894; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                <span style="background: #00b894; color: white; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">2</span>
+                                Normalkan Cell di File Resmi (Border Tetap Aman)
+                            </h4>
+                            <p style="font-size: 12px; color: var(--text-color); margin: 0 0 12px 0; line-height: 1.6;">
+                                Kedua, buka template resmi kantor. Biar cell yang dimerge lepas, warna bekasnya hilang, komentar bersih, dan tulisannya gak tebal <b>tanpa merusak garis tabel (border)</b>, ikuti cara cepat ini ya sayang:
+                                <br><br>
+                                <b>1. Blok area tabel absensi</b> yang mau ditempel datanya.
+                                <br>
+                                <b>2. Hilangkan Warna:</b> Di tab <b>Home</b>, klik panah di samping ikon ember cat (<i>Fill Color</i>), lalu pilih <b>No Fill</b>.
+                                <br>
+                                <b>3. Lepas Merge:</b> Masih di tab Home, klik panah di samping tombol <b>Merge & Center</b>, lalu pilih <b>Unmerge Cells</b>.
+                                <br>
+                                <b>4. Lepas Huruf Tebal (Bold):</b> Tekan kombinasi tombol keyboard <b>Ctrl + B</b> sampai tulisannya normal (gak tebal lagi).
+                                <br>
+                                <b>5. Hapus Komentar:</b> Klik menu <b>Clear</b> (ikon penghapus di pojok kanan atas), lalu pilih <b>Clear Comments and Notes</b>.
+                                <br><br>
+                                <i>*Tips shortcut kilat: setelah diblok, sayang bisa tekan <b>Alt -> H -> H -> N</b> (buang warna), lalu <b>Alt -> H -> M -> U</b> (lepas merge), tekan <b>Ctrl + B</b> (normalkan huruf), dan <b>Alt -> H -> E -> M</b> (buang komentar).*</i>
+                            </p>
+                            <div style="background: #ffffff; border: 2px dashed #b2bec3; border-radius: 8px; padding: 12px; text-align: center;">
+                                <img src="img/Ke 2.png" alt="Tutorial Langkah 2" style="max-width: 100%; height: auto; border-radius: 6px; display: block; margin: 0 auto;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span style="display: none; font-size: 12px; color: #b2bec3;"><i class="fa-regular fa-image"></i> Simpan foto ke <code>img/tutorial-step2.png</code></span>
+                            </div>
+                        </div>
+
+                    <!-- Langkah 3 -->
+                    <div style="background: #f8fffd; border: 1px solid #c8f7ea; border-radius: 12px; padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; color: #00b894; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                            <span style="background: #00b894; color: white; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">3</span>
+                            Paste Values ke Template Resmi
+                        </h4>
+                        <p style="font-size: 12px; color: var(--text-color); margin: 0 0 12px 0; line-height: 1.6;">
+                            Ketiga, setelah kolomnya aman gak ada yang merge aneh-aneh, tinggal klik kanan di sel awal baris karyawan pertama yang pas, terus pilih <b>Paste Values</b> (yang logonya angka 123) atau <b>Paste Special &gt; Values</b> ya sayang. Ini penting banget biar rumus bawaan kantor dan format warnanya tetap rapi dan gak rusak.
+                        </p>
+                        <div style="background: #ffffff; border: 2px dashed #b2bec3; border-radius: 8px; padding: 12px; text-align: center;">
+                            <img src="img/Ke 3.png" alt="Tutorial Langkah 3" style="max-width: 100%; height: auto; border-radius: 6px; display: block; margin: 0 auto;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <span style="display: none; font-size: 12px; color: #b2bec3;"><i class="fa-regular fa-image"></i> Simpan foto ke <code>img/tutorial-step3.png</code></span>
+                        </div>
+                    </div>
+
+                    <!-- Langkah 4 -->
+                    <div style="background: #f8fffd; border: 1px solid #c8f7ea; border-radius: 12px; padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; color: #00b894; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                            <span style="background: #00b894; color: white; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;">4</span>
+                            Cocokkan Urutan dengan File Fingerprint & Rekap Akhir
+                        </h4>
+                        <p style="font-size: 12px; color: var(--text-color); margin: 0 0 12px 0; line-height: 1.6;">
+                            Terakhir, pastiin urutan baris nama karyawannya udah sama persis dengan urutan yang ada di <b>file mesin fingerprint (file yang di-import)</b> ya sayang, biar datanya gak tertukar ke orang lain. Setelah urutannya pas, tinggal cek deh ringkasan total hadir, izin, sakit, sama hitungan telatnya di kolom ujung paling kanan. Kalau semuanya udah klop, tinggal di-save!
+                        </p>
+                        <div style="background: #ffffff; border: 2px dashed #b2bec3; border-radius: 8px; padding: 12px; text-align: center;">
+                            <img src="img/Ke 4.png" alt="Tutorial Langkah 4" style="max-width: 100%; height: auto; border-radius: 6px; display: block; margin: 0 auto;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <span style="display: none; font-size: 12px; color: #b2bec3;"><i class="fa-regular fa-image"></i> Simpan foto ke <code>img/tutorial-step4.png</code></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
         </div>
 
     </div>
