@@ -639,9 +639,7 @@ function exportKeExcel(deptChoice) {
 function getFormKaryawanHtml(k = {}) {
     const listDept = [
         "HEAD OFFICE LANTAI 3",
-        "PRODUKSI (LANTAI 1 & 2)",
-        "GUDANG",
-        "MARKETING"
+        "PRODUKSI"
     ];
 
     const deptOptions = listDept.map(d => 
