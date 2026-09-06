@@ -434,7 +434,7 @@ function importLogFinger(input) {
         updateImportDropdownUI();
         remapAbsensiDariRawLogs(); // Hubungkan langsung ke daftar karyawan saat ini
         saveToLocalStorage();
-        alert(`✨ File "${file.name}" berhasil di-import!`);
+        alert(`✨ File "${file.name}" berhasil di-import ya Sayanggg😘!`);
     };
     reader.readAsArrayBuffer(file);
 }
@@ -516,7 +516,7 @@ function deleteSpecificFile(fileName) {
         // 5. Update tampilan dan simpan ke Firebase/LocalStorage
         updateImportDropdownUI();
         saveToLocalStorage();
-        alert(`File "${fileName}" telah berhasil dihapus.`);
+        alert(`File "${fileName}" telah berhasil Uby dihapus.`);
     }
 }
 
@@ -532,7 +532,7 @@ function clearImportedData() {
         document.getElementById('inputLogFile').value = "";
         renderAbsensiTable();
         saveToLocalStorage();
-        alert("Semua data import telah dibersihkan.");
+        alert("Semua data import telah dibersihkan ya Sayang😘.");
     }
 }
 
@@ -701,8 +701,13 @@ function openAddModal() {
         focusConfirm: false,
         preConfirm: () => {
             const nama = document.getElementById('swalNama').value.trim();
+            const finger = document.getElementById('swalFinger').value.trim();
             if (!nama) {
                 Swal.showValidationMessage('Nama lengkap wajib diisi!');
+                return false;
+            }
+            if (!finger) {
+                Swal.showValidationMessage('Nama Finger wajib diisi!');
                 return false;
             }
             return {
@@ -727,7 +732,7 @@ function openAddModal() {
                 icon: 'success',
                 title: 'Tersimpan!',
                 text: 'Karyawan baru berhasil ditambahkan. Jangan lupa cerita ke Uby Ok !',
-                timer: 2700,
+                timer: 3100,
                 showConfirmButton: false
             });
         }
@@ -750,8 +755,13 @@ function openEditModal(id) {
         focusConfirm: false,
         preConfirm: () => {
             const nama = document.getElementById('swalNama').value.trim();
+            const finger = document.getElementById('swalFinger').value.trim();
             if (!nama) {
                 Swal.showValidationMessage('Nama lengkap wajib diisi!');
+                return false;
+            }
+            if (!finger) {
+                Swal.showValidationMessage('Nama Finger wajib diisi!');
                 return false;
             }
             return {
@@ -775,7 +785,7 @@ function openEditModal(id) {
                 icon: 'success',
                 title: 'Ok Uby Update yaa!',
                 text: 'Perubahan data karyawan berhasil Uby disimpan.',
-                timer: 1500,
+                timer: 2500,
                 showConfirmButton: false
             });
         }
@@ -793,10 +803,11 @@ function saveKaryawan() {
     let finger = document.getElementById('mNamaFinger').value;
     let dept = document.getElementById('mDept').value;
     let jamIn = document.getElementById('mJamMasuk').value;
-    let gapok = parseInt(document.getElementById('mGapok').value) || 0;
-    let tunj = parseInt(document.getElementById('mTunj').value) || 0;
+    let gapok = parseInt(document.getElementById('mGapok').value);
+    let tunj = parseInt(document.getElementById('mTunj').value);
 
     if(!nama) return alert("Nama wajib diisi!");
+    if(!finger) return alert("Nama Finger wajib diisi!");
 
     if(editId) {
         let k = listKaryawan.find(item => item.id === parseInt(editId));
@@ -835,7 +846,7 @@ function deleteKaryawan(id) {
         confirmButtonColor: '#d63031',
         cancelButtonColor: '#b2bec3',
         confirmButtonText: '<i class="fa-solid fa-trash"></i> Ya, Hapus!',
-        cancelButtonText: 'Batal',
+        cancelButtonText: 'Kepencet',
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
@@ -851,7 +862,7 @@ function deleteKaryawan(id) {
             Swal.fire({
                 icon: 'success',
                 title: 'Ok Uby Hapus!',
-                text: `${namaKaryawan} telah berhasil Uby dihapus.`,
+                text: `${namaKaryawan} telah berhasil Uby dihapus. Jangan nyesel ya..`,
                 timer: 1500,
                 showConfirmButton: false
             });
