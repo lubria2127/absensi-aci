@@ -1,5 +1,24 @@
+// ===============================================
+// INISIALISASI FIREBASE CLOUD FIRESTORE
+// ===============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyA2UR2N2uKtU6MQUrRrl4PjP2H0EKwEAhU",
+  authDomain: "absensi-aci.firebaseapp.com",
+  projectId: "absensi-aci",
+  storageBucket: "absensi-aci.firebasestorage.app",
+  messagingSenderId: "678680412575",
+  appId: "1:678680412575:web:d9a82aaac2116165b7fdaa",
+  measurementId: "G-4VMHV7GG8M"
+};
+
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = typeof firebase !== 'undefined' ? firebase.firestore() : null;
+
 // Store Absensi Data: { empId: { tgl: { in: "", out: "", status: "" } } }
 let dataAbsensi = {};
+let rawFingerLogs = {};
 let importedFilesList = []; // Menyimpan daftar nama file yang sudah di-import
 let dataAbsensiPerFile = {}; // Menyimpan data log spesifik per file: { "fileA.xls": { empId: { tgl: { in, out } } } }
 let periodeText = ""; // Menyimpan teks periode misal "2026-07-15 ~ 2026-08-04"
@@ -25,21 +44,28 @@ function switchView(viewName) {
     document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
     document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
 
+    const navItems = document.querySelectorAll('.nav-item');
+
     if(viewName === 'karyawan') {
-        document.querySelectorAll('.nav-item')[0].classList.add('active');
+        if(navItems[0]) navItems[0].classList.add('active');
         document.getElementById('viewKaryawan').classList.add('active');
         document.getElementById('pageTitle').innerText = "Data Karyawan";
         document.getElementById('headerActions').style.display = "block";
     } else if(viewName === 'absensi') {
-        document.querySelectorAll('.nav-item')[1].classList.add('active');
+        if(navItems[1]) navItems[1].classList.add('active');
         document.getElementById('viewAbsensi').classList.add('active');
         document.getElementById('pageTitle').innerText = "Absensi Karyawan";
         document.getElementById('headerActions').style.display = "none";
         renderAbsensiTable();
-    } else if(viewName === 'laporan') {
-        document.querySelectorAll('.nav-item')[2].classList.add('active');
+    } else if(viewName === 'laporan' || viewName === 'rekap') {
+        if(navItems[2]) navItems[2].classList.add('active');
         document.getElementById('viewLaporan').classList.add('active');
         document.getElementById('pageTitle').innerText = "Rekap & Laporan";
+        document.getElementById('headerActions').style.display = "none";
+    } else if(viewName === 'tutorial') {
+        if(navItems[3]) navItems[3].classList.add('active');
+        document.getElementById('viewTutorial').classList.add('active');
+        document.getElementById('pageTitle').innerText = "Panduan & Tutorial";
         document.getElementById('headerActions').style.display = "none";
     }
 }
@@ -127,20 +153,18 @@ function setPositionKaryawan(id, newPos) {
     renderKaryawanTable();
 }
 
-function deleteKaryawan(id) {
-    if(confirm("Yakin mau hapus karyawan ini?")) {
-        listKaryawan = listKaryawan.filter(k => k.id !== id);
-        renderKaryawanTable();
-    }
-}
-
 function renderAbsensiTable() {
     // Tampilkan Periode jika ada
     let badge = document.getElementById('badgePeriode');
     let txt = document.getElementById('textPeriode');
-    if (periodeText && badge && txt) {
-        txt.innerText = periodeText;
-        badge.style.display = 'inline-flex';
+    if (badge && txt) {
+        if (periodeText && periodeText.trim() !== "") {
+            txt.innerText = periodeText;
+            badge.style.display = 'inline-flex';
+        } else {
+            txt.innerText = "-";
+            badge.style.display = 'none'; // Sembunyikan jika periodeText kosong
+        }
     }
 
     let filterDept = document.getElementById('filterAbsensiDept').value;
@@ -289,6 +313,44 @@ function updateStatusManual(empId, tgl, val) {
     saveToLocalStorage();
 }
 
+// MEMETAKAN ULANG LOG SECARA INTERAKTIF KE KARYAWAN AKTIF
+function remapAbsensiDariRawLogs() {
+    // 1. Reset jam masuk & keluar di dataAbsensi, tapi biarkan status manual (Sakit, Cuti, dll)
+    listKaryawan.forEach(k => {
+        if (!dataAbsensi[k.id]) dataAbsensi[k.id] = {};
+        listTanggal.forEach(tgl => {
+            if (!dataAbsensi[k.id][tgl]) {
+                dataAbsensi[k.id][tgl] = { in: "", out: "", status: "" };
+            } else {
+                dataAbsensi[k.id][tgl].in = "";
+                dataAbsensi[k.id][tgl].out = "";
+            }
+        });
+    });
+
+    // 2. Cocokkan raw scan log ke karyawan berdasarkan finger aktif
+    Object.keys(rawFingerLogs).forEach(fName => {
+        let fUpper = fName.trim().toUpperCase();
+        // Cocokkan hanya ke nama finger yang persis sama
+        let k = listKaryawan.find(item => item.finger && item.finger.trim().toUpperCase() === fUpper);
+
+        if (k) {
+            let logsPerTgl = rawFingerLogs[fName];
+            Object.keys(logsPerTgl).forEach(dayNum => {
+                let d = logsPerTgl[dayNum];
+                if (!dataAbsensi[k.id][dayNum]) {
+                    dataAbsensi[k.id][dayNum] = { in: "", out: "", status: "" };
+                }
+                dataAbsensi[k.id][dayNum].in = d.in;
+                dataAbsensi[k.id][dayNum].out = d.out;
+            });
+        }
+    });
+
+    // 3. Render tabel & sinkronkan hasil kalkulasi
+    renderAbsensiTable();
+}
+
 // IMPORT LOG MESIN & MENAMPILKAN NAMA BERKAS
 function importLogFinger(input) {
     let file = input.files[0];
@@ -305,17 +367,13 @@ function importLogFinger(input) {
         let ws = wb.Sheets['Lap. Log Absen'] || wb.Sheets[wb.SheetNames[0]];
         let json = XLSX.utils.sheet_to_json(ws, {header:1});
 
-        // ===============================================
-        // BACA PERIODE DARI CELL C3 (Baris Indeks 2, Kolom Indeks 2)
-        // ===============================================
+        // BACA PERIODE
         if (json[2] && json[2][2]) {
             periodeText = String(json[2][2]).trim();
-            
-            // Ekstrak Tahun & Bulan dari format "2026-07-15 ~ 2026-08-04"
             let match = periodeText.match(/(\d{4})-(\d{2})-(\d{2})/);
             if(match) {
                 tglStartYear = parseInt(match[1]);
-                tglStartMonth = parseInt(match[2]) - 1; // Konversi bulan ke format 0-indexed JS (Januari=0, Juli=6)
+                tglStartMonth = parseInt(match[2]) - 1;
             }
         }
 
@@ -325,61 +383,47 @@ function importLogFinger(input) {
             let fingerName = json[r] ? json[r][10] : null;
             if(fingerName) {
                 let fUpper = String(fingerName).trim().toUpperCase();
-                let k = listKaryawan.find(item => item.finger.toUpperCase() === fUpper || item.nama.toUpperCase().includes(fUpper));
-                
-                if(k) {
-                    let logRow = json[r+1];
-                    if(logRow) {
-                        for(let c=0; c<logRow.length; c++) {
-                            let tglHead = json[3] ? json[3][c] : null;
-                            let rawTime = logRow[c];
-                            if(tglHead && rawTime) {
-                                let dayNum = parseInt(tglHead);
-                                let timeStr = String(rawTime).trim();
-                                
-                                // AMBIL SEMUA FORMAT JAM (HH:MM) YANG TERTULIS DENGAN REGEX
-                                let times = timeStr.match(/\d{2}:\d{2}/g);
-                                let inStr = "", outStr = "";
+                let logRow = json[r+1];
+                if(logRow) {
+                    for(let c=0; c<logRow.length; c++) {
+                        let tglHead = json[3] ? json[3][c] : null;
+                        let rawTime = logRow[c];
+                        if(tglHead && rawTime) {
+                            let dayNum = parseInt(tglHead);
+                            let timeStr = String(rawTime).trim();
+                            let times = timeStr.match(/\d{2}:\d{2}/g);
+                            let inStr = "", outStr = "";
 
-                                if (times && times.length > 0) {
-                                    if (times.length === 1) {
-                                        // Jika hanya ada 1 record jam
-                                        let h = parseInt(times[0].substring(0, 2));
-                                        if (h < 13) inStr = times[0];
-                                        else outStr = times[0];
-                                    } else {
-                                        // Jika ada 2 record jam atau lebih (akibat double/multiple scan)
-                                        let firstTime = times[0];                   // Jam pendaftaran paling awal
-                                        let lastTime = times[times.length - 1];     // Jam pendaftaran paling akhir
+                            if (times && times.length > 0) {
+                                if (times.length === 1) {
+                                    let h = parseInt(times[0].substring(0, 2));
+                                    if (h < 13) inStr = times[0];
+                                    else outStr = times[0];
+                                } else {
+                                    let firstTime = times[0];
+                                    let lastTime = times[times.length - 1];
+                                    let [fH, fM] = firstTime.split(':').map(Number);
+                                    let [lH, lM] = lastTime.split(':').map(Number);
+                                    let firstMins = fH * 60 + fM;
+                                    let lastMins = lH * 60 + lM;
 
-                                        let [fH, fM] = firstTime.split(':').map(Number);
-                                        let [lH, lM] = lastTime.split(':').map(Number);
-                                        let firstMins = fH * 60 + fM;
-                                        let lastMins = lH * 60 + lM;
-
-                                        if (fH < 13) {
-                                            inStr = firstTime; // Jam paling awal diambil sebagai jam IN
-                                            
-                                            // Jam OUT hanya diambil jika jam scan terakhir berjarak minimal 1 jam (60 menit)
-                                            // atau dilakukan pada sore/pulang kerja (>= 12:00)
-                                            if (lastMins - firstMins >= 60 || lH >= 12) {
-                                                outStr = lastTime;
-                                            }
-                                        } else {
-                                            // Jika semua scan terjadi di atas jam 13:00
+                                    if (fH < 13) {
+                                        inStr = firstTime;
+                                        if (lastMins - firstMins >= 60 || lH >= 12) {
                                             outStr = lastTime;
                                         }
+                                    } else {
+                                        outStr = lastTime;
                                     }
                                 }
-
-                                // Simpan ke data utama
-                                if(!dataAbsensi[k.id]) dataAbsensi[k.id] = {};
-                                dataAbsensi[k.id][dayNum] = { in: inStr, out: outStr, status:"" };
-
-                                // Simpan rekam Jejak khusus per file
-                                if(!dataAbsensiPerFile[file.name][k.id]) dataAbsensiPerFile[file.name][k.id] = {};
-                                dataAbsensiPerFile[file.name][k.id][dayNum] = true;
                             }
+
+                            // Simpan ke RAW LOGS berdasarkan NAMA FINGER MESIN
+                            if(!rawFingerLogs[fUpper]) rawFingerLogs[fUpper] = {};
+                            rawFingerLogs[fUpper][dayNum] = { in: inStr, out: outStr, sourceFile: file.name };
+
+                            if(!dataAbsensiPerFile[file.name][fUpper]) dataAbsensiPerFile[file.name][fUpper] = {};
+                            dataAbsensiPerFile[file.name][fUpper][dayNum] = true;
                         }
                     }
                 }
@@ -388,12 +432,13 @@ function importLogFinger(input) {
 
         importedFilesList.push(file.name);
         updateImportDropdownUI();
+        remapAbsensiDariRawLogs(); // Hubungkan langsung ke daftar karyawan saat ini
         saveToLocalStorage();
         alert(`✨ File "${file.name}" berhasil di-import!`);
-        renderAbsensiTable();
     };
     reader.readAsArrayBuffer(file);
 }
+
 // FUNGSI UPDATE UI DROPDOWN HAPUS FILE
 function updateImportDropdownUI() {
     let container = document.getElementById('dropdownHapusContainer');
@@ -434,34 +479,53 @@ function updateImportDropdownUI() {
 }
 
 // HAPUS FILE TERTENTU
+// HAPUS FILE TERTENTU BESERTA RAW LOG-NYA
 function deleteSpecificFile(fileName) {
-    if(confirm(`Yakin ingin menghapus data dari file "${fileName}"?`)) {
-        let fileLogs = dataAbsensiPerFile[fileName];
-        if(fileLogs) {
-            Object.keys(fileLogs).forEach(empId => {
-                Object.keys(fileLogs[empId]).forEach(tgl => {
-                    if(dataAbsensi[empId] && dataAbsensi[empId][tgl]) {
-                        dataAbsensi[empId][tgl].in = "";
-                        dataAbsensi[empId][tgl].out = "";
+    if(confirm(`Yakin Aci ingin menghapus data dari file "${fileName}"?`)) {
+        // 1. Bersihkan rawFingerLogs yang berasal dari file ini
+        if (typeof rawFingerLogs !== 'undefined') {
+            Object.keys(rawFingerLogs).forEach(fName => {
+                Object.keys(rawFingerLogs[fName]).forEach(dayNum => {
+                    if (rawFingerLogs[fName][dayNum].sourceFile === fileName) {
+                        delete rawFingerLogs[fName][dayNum];
                     }
                 });
+                // Hapus key nama jika sudah tidak punya tanggal log lagi
+                if (Object.keys(rawFingerLogs[fName]).length === 0) {
+                    delete rawFingerLogs[fName];
+                }
             });
         }
-        
+
+        // 2. Bersihkan jejak file
         delete dataAbsensiPerFile[fileName];
         importedFilesList = importedFilesList.filter(f => f !== fileName);
+
+        // 3. Jika semua file sudah terhapus, reset teks periode
+        if (importedFilesList.length === 0) {
+            periodeText = "";
+            let badge = document.getElementById('badgePeriode');
+            if (badge) badge.style.display = 'none';
+        }
+
+        // 4. Petakan ulang tabel absensi agar jam dari file yang dihapus langsung bersih
+        if (typeof remapAbsensiDariRawLogs === 'function') {
+            remapAbsensiDariRawLogs();
+        }
+
+        // 5. Update tampilan dan simpan ke Firebase/LocalStorage
         updateImportDropdownUI();
-        renderAbsensiTable();
         saveToLocalStorage();
-        alert(`File "${fileName}" telah dihapus.`);
+        alert(`File "${fileName}" telah berhasil dihapus.`);
     }
 }
 
 // HAPUS SEMUA DATA IMPORT (RESET TOTAL)
 function clearImportedData() {
-    if(confirm("Apakah Anda yakin ingin menghapus SELURUH data import?")) {
+    if(confirm("Apakah Aci yakin ingin menghapus Seluruh data import?")) {
         dataAbsensi = {};
         dataAbsensiPerFile = {};
+        rawFingerLogs = {};
         importedFilesList = [];
         initDataAbsensi();
         updateImportDropdownUI();
@@ -571,33 +635,153 @@ function exportKeExcel(deptChoice) {
     XLSX.writeFile(wb, `Rekap_Absensi_${sheetName.replace(/ /g, "_")}.xlsx`);
 }
 
-function openAddModal() {
-    document.getElementById('modalTitle').innerText = "Tambah Karyawan";
-    document.getElementById('mEditId').value = "";
-    document.getElementById('mNama').value = "";
-    document.getElementById('mJabatan').value = "";
-    document.getElementById('mNamaFinger').value = "";
-    document.getElementById('mDept').value = "HEAD OFFICE LANTAI 3";
-    document.getElementById('mJamMasuk').value = "09:00";
-    document.getElementById('mGapok').value = 0;
-    document.getElementById('mTunj').value = 0;
-    document.getElementById('modalKaryawan').style.display = 'flex';
+// HELPER: BUILD TEMPLATE HTML FORM MODAL
+function getFormKaryawanHtml(k = {}) {
+    const listDept = [
+        "HEAD OFFICE LANTAI 3",
+        "PRODUKSI (LANTAI 1 & 2)",
+        "GUDANG",
+        "MARKETING"
+    ];
+
+    const deptOptions = listDept.map(d => 
+        `<option value="${d}" ${k.dept === d ? 'selected' : ''}>${d}</option>`
+    ).join('');
+
+    return `
+        <div style="text-align: left; font-size: 13px; color: #4a3f44; display: flex; flex-direction: column; gap: 10px;">
+            <div>
+                <label style="font-weight: 600; font-size: 11px;">NAMA LENGKAP</label>
+                <input id="swalNama" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" value="${k.nama || ''}" placeholder="Nama Lengkap">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="font-weight: 600; font-size: 11px;">JABATAN</label>
+                    <input id="swalJabatan" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" value="${k.jabatan || ''}" placeholder="Jabatan">
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 11px;">NAMA MESIN FINGER</label>
+                    <input id="swalFinger" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" value="${k.finger || ''}" placeholder="Nama di Mesin">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="font-weight: 600; font-size: 11px;">DEPARTEMEN</label>
+                    <select id="swalDept" class="swal2-select" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 12px; border-radius: 8px;">
+                        ${deptOptions}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 11px;">JAM MASUK (HH:MM)</label>
+                    <input id="swalJamIn" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" value="${k.jamIn || '09:00'}" placeholder="09:00">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="font-weight: 600; font-size: 11px;">GAJI POKOK (Rp)</label>
+                    <input id="swalGapok" type="number" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" placeholder="${k.gapok || 0}">
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 11px;">TUNJANGAN (Rp)</label>
+                    <input id="swalTunj" type="number" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" placeholder="${k.tunj || 0}">
+                </div>
+            </div>
+        </div>
+    `;
 }
 
+// POP-UP TAMBAH KARYAWAN
+function openAddModal() {
+    Swal.fire({
+        title: '<i class="fa-solid fa-user-plus" style="color:#f78fb3;"></i> Tambah Karyawan Nihh',
+        html: getFormKaryawanHtml({ dept: "HEAD OFFICE LANTAI 3", jamIn: "09:00", gapok: 0, tunj: 0 }),
+        showCancelButton: true,
+        confirmButtonText: 'Simpan Data',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#f78fb3',
+        cancelButtonColor: '#b2bec3',
+        focusConfirm: false,
+        preConfirm: () => {
+            const nama = document.getElementById('swalNama').value.trim();
+            if (!nama) {
+                Swal.showValidationMessage('Nama lengkap wajib diisi!');
+                return false;
+            }
+            return {
+                id: listKaryawan.length ? Math.max(...listKaryawan.map(k => k.id)) + 1 : 1,
+                nama: nama,
+                jabatan: document.getElementById('swalJabatan').value.trim(),
+                finger: document.getElementById('swalFinger').value.trim(),
+                dept: document.getElementById('swalDept').value,
+                jamIn: document.getElementById('swalJamIn').value.trim() || "09:00",
+                gapok: parseInt(document.getElementById('swalGapok').value) || 0,
+                tunj: parseInt(document.getElementById('swalTunj').value) || 0
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            listKaryawan.push(result.value);
+            initDataAbsensi();
+            if (typeof remapAbsensiDariRawLogs === 'function') remapAbsensiDariRawLogs();
+            renderKaryawanTable();
+            saveToLocalStorage();
+            Swal.fire({
+                icon: 'success',
+                title: 'Tersimpan!',
+                text: 'Karyawan baru berhasil ditambahkan. Jangan lupa cerita ke Uby Ok !',
+                timer: 2700,
+                showConfirmButton: false
+            });
+        }
+    });
+}
+
+// POP-UP EDIT KARYAWAN
 function openEditModal(id) {
     let k = listKaryawan.find(item => item.id === id);
-    if(!k) return;
+    if (!k) return;
 
-    document.getElementById('modalTitle').innerText = "Edit Data Karyawan";
-    document.getElementById('mEditId').value = k.id;
-    document.getElementById('mNama').value = k.nama;
-    document.getElementById('mJabatan').value = k.jabatan;
-    document.getElementById('mNamaFinger').value = k.finger;
-    document.getElementById('mDept').value = k.dept;
-    document.getElementById('mJamMasuk').value = k.jamIn;
-    document.getElementById('mGapok').value = k.gapok || 0;
-    document.getElementById('mTunj').value = k.tunj || 0;
-    document.getElementById('modalKaryawan').style.display = 'flex';
+    Swal.fire({
+        title: '<i class="fa-solid fa-user-pen" style="color:#f78fb3;"></i> Edit Data Karyawan',
+        html: getFormKaryawanHtml(k),
+        showCancelButton: true,
+        confirmButtonText: 'Update Data',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#f78fb3',
+        cancelButtonColor: '#b2bec3',
+        focusConfirm: false,
+        preConfirm: () => {
+            const nama = document.getElementById('swalNama').value.trim();
+            if (!nama) {
+                Swal.showValidationMessage('Nama lengkap wajib diisi!');
+                return false;
+            }
+            return {
+                nama: nama,
+                jabatan: document.getElementById('swalJabatan').value.trim(),
+                finger: document.getElementById('swalFinger').value.trim(),
+                dept: document.getElementById('swalDept').value,
+                jamIn: document.getElementById('swalJamIn').value.trim() || "09:00",
+                gapok: parseInt(document.getElementById('swalGapok').value) || 0,
+                tunj: parseInt(document.getElementById('swalTunj').value) || 0
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Object.assign(k, result.value);
+            initDataAbsensi();
+            if (typeof remapAbsensiDariRawLogs === 'function') remapAbsensiDariRawLogs();
+            renderKaryawanTable();
+            saveToLocalStorage();
+            Swal.fire({
+                icon: 'success',
+                title: 'Ok Uby Update yaa!',
+                text: 'Perubahan data karyawan berhasil Uby disimpan.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    });
 }
 
 function closeModal() {
@@ -633,49 +817,201 @@ function saveKaryawan() {
     }
 
     initDataAbsensi();
+    remapAbsensiDariRawLogs();
+    saveToLocalStorage(); // <-- Menambahkan ini agar perubahan nama/data langsung masuk ke Firebase
     renderKaryawanTable();
     closeModal();
 }
 
+// POP-UP HAPUS KARYAWAN DENGAN SWEETALERT2
+function deleteKaryawan(id) {
+    let k = listKaryawan.find(item => item.id === id);
+    let namaKaryawan = k ? k.nama : "Karyawan ini";
 
-// SIMPAN DATA KE BROWSER
-function saveToLocalStorage() {
-    localStorage.setItem('ACI_LIST_KARYAWAN', JSON.stringify(listKaryawan)); // <-- Menyimpan urutan array
+    Swal.fire({
+        title: 'Kok Dihapus ?',
+        html: `Apakah Aci yakin ingin menghapus <b>${namaKaryawan}</b> dari sistem?`,
+        icon: 'warning',
+        iconColor: '#ff7675',
+        showCancelButton: true,
+        confirmButtonColor: '#d63031',
+        cancelButtonColor: '#b2bec3',
+        confirmButtonText: '<i class="fa-solid fa-trash"></i> Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            listKaryawan = listKaryawan.filter(k => k.id !== id);
+            
+            if (typeof remapAbsensiDariRawLogs === 'function') {
+                remapAbsensiDariRawLogs();
+            }
+            
+            renderKaryawanTable();
+            saveToLocalStorage();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Ok Uby Hapus!',
+                text: `${namaKaryawan} telah berhasil Uby dihapus.`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    });
+}
+
+// SIMPAN KE FIREBASE & CADANGAN LOKAL
+async function saveToLocalStorage() {
+    // 1. Simpan ke browser untuk cache instan
+    localStorage.setItem('ACI_LIST_KARYAWAN', JSON.stringify(listKaryawan));
     localStorage.setItem('ACI_DATA_ABSENSI', JSON.stringify(dataAbsensi));
     localStorage.setItem('ACI_IMPORTED_FILES', JSON.stringify(importedFilesList));
     localStorage.setItem('ACI_DATA_PER_FILE', JSON.stringify(dataAbsensiPerFile));
     localStorage.setItem('ACI_PERIODE_TEXT', periodeText);
+    localStorage.setItem('ACI_RAW_FINGER_LOGS', JSON.stringify(rawFingerLogs));
+
+    // 2. Simpan permanen ke Cloud Firestore
+    if (db) {
+        try {
+            await db.collection("absensi_app").doc("state_utama").set({
+                listKaryawan: listKaryawan,
+                dataAbsensi: dataAbsensi,
+                importedFilesList: importedFilesList,
+                dataAbsensiPerFile: dataAbsensiPerFile,
+                periodeText: periodeText,
+                rawFingerLogs: rawFingerLogs,
+                updatedAt: new Date().toISOString()
+            });
+            console.log("☁️ Data berhasil disinkronkan ke Firebase!");
+        } catch (e) {
+            console.error("Gagal sinkron ke Firebase:", e);
+        }
+    }
 }
 
-function loadFromLocalStorage() {
-    let savedKaryawan = localStorage.getItem('ACI_LIST_KARYAWAN');
-    let savedAbsensi = localStorage.getItem('ACI_DATA_ABSENSI');
-    let savedFiles = localStorage.getItem('ACI_IMPORTED_FILES');
-    let savedPerFile = localStorage.getItem('ACI_DATA_PER_FILE');
-    let savedPeriode = localStorage.getItem('ACI_PERIODE_TEXT');
+// MUAT DATA DARI FIREBASE SAAT BUKA WEB
+async function loadFromLocalStorage() {
+    let loadedFromCloud = false;
 
-    if (savedKaryawan && typeof listKaryawan !== 'undefined') {
-        let parsedSaved = JSON.parse(savedKaryawan);
+    if (db) {
+        try {
+            const doc = await db.collection("absensi_app").doc("state_utama").get();
+            if (doc.exists) {
+                const data = doc.data();
 
-        // 1. Hapus karyawan dari LocalStorage jika ID-nya sudah dihilangkan dari dataKaryawan.js
-        let updatedList = parsedSaved.filter(savedItem => 
-            listKaryawan.some(masterItem => masterItem.id === savedItem.id)
-        );
+                if (data.listKaryawan && Array.isArray(data.listKaryawan) && data.listKaryawan.length > 0) {
+                    listKaryawan = data.listKaryawan;
+                }
+                if (data.dataAbsensi && Object.keys(data.dataAbsensi).length > 0) {
+                    dataAbsensi = data.dataAbsensi;
+                }
+                if (data.importedFilesList) importedFilesList = data.importedFilesList;
+                if (data.dataAbsensiPerFile) dataAbsensiPerFile = data.dataAbsensiPerFile;
+                if (data.periodeText) periodeText = data.periodeText;
+                if (data.rawFingerLogs) rawFingerLogs = data.rawFingerLogs;
 
-        // 2. Tambahkan karyawan baru jika ada ID baru di dataKaryawan.js yang belum ada di LocalStorage
-        listKaryawan.forEach(masterItem => {
-            if (!updatedList.some(savedItem => savedItem.id === masterItem.id)) {
-                updatedList.push(masterItem);
+                loadedFromCloud = true;
+                console.log("☁️ Data berhasil dimuat dari Firebase!");
             }
-        });
-
-        listKaryawan = updatedList;
+        } catch (e) {
+            console.warn("Gagal memuat dari Cloud Firestore, menggunakan data lokal:", e);
+        }
     }
 
-    if (savedAbsensi) dataAbsensi = JSON.parse(savedAbsensi);
-    if (savedFiles) importedFilesList = JSON.parse(savedFiles);
-    if (savedPerFile) dataAbsensiPerFile = JSON.parse(savedPerFile);
-    if (savedPeriode) periodeText = savedPeriode;
+    // Fallback jika Firebase belum ada data atau gagal termuat
+    if (!loadedFromCloud) {
+        let savedKaryawan = localStorage.getItem('ACI_LIST_KARYAWAN');
+        let savedAbsensi = localStorage.getItem('ACI_DATA_ABSENSI');
+        let savedFiles = localStorage.getItem('ACI_IMPORTED_FILES');
+        let savedPerFile = localStorage.getItem('ACI_DATA_PER_FILE');
+        let savedPeriode = localStorage.getItem('ACI_PERIODE_TEXT');
+        let savedRawLogs = localStorage.getItem('ACI_RAW_FINGER_LOGS');
+
+        if (savedKaryawan) listKaryawan = JSON.parse(savedKaryawan);
+        if (savedAbsensi) dataAbsensi = JSON.parse(savedAbsensi);
+        if (savedFiles) importedFilesList = JSON.parse(savedFiles);
+        if (savedPerFile) dataAbsensiPerFile = JSON.parse(savedPerFile);
+        if (savedPeriode) periodeText = savedPeriode;
+        if (savedRawLogs) rawFingerLogs = JSON.parse(savedRawLogs);
+    }
+
+    initDataAbsensi();
+    updateImportDropdownUI();
+    remapAbsensiDariRawLogs();
+    renderKaryawanTable();
+    renderAbsensiTable();
+
+    // =========================================================================
+    // SWEETALERT2 MODERN: PENGINGAT FILE IMPORT LAMA
+    // =========================================================================
+    if (importedFilesList && importedFilesList.length > 0) {
+        setTimeout(() => {
+            const listHtml = importedFilesList
+                .map(f => `<li style="margin-bottom:4px;"><i class="fa-solid fa-file-excel" style="color:#27ae60;"></i> <b>${f}</b></li>`)
+                .join("");
+
+            Swal.fire({
+                title: 'Perhatian Sayang😮',
+                html: `
+                    <div style="text-align: left; font-size: 13px; line-height: 1.6; color: #4a3f44;">
+                        <p style="margin-bottom: 8px;">Uby menemukan riwayat file absensi Aci yang masih tersimpan:</p>
+                        <ul style="background: #fff0f5; padding: 10px 25px; border-radius: 8px; border: 1px solid #ffd8e1; list-style: none;">
+                            ${listHtml}
+                        </ul>
+                        <p style="margin-top: 10px; color: #d63031; font-weight: 500;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Uby sarankan untuk mereset/menghapus file lama sebelum memasukkan file baru agar tidak terjadi bentrok atau duplikasi <br> data😘
+                        </p>
+                    </div>
+                `,
+                icon: 'warning',
+                iconColor: '#f78fb3',
+                showCancelButton: true,
+                confirmButtonColor: '#e74c3c',
+                cancelButtonColor: '#f8a5c2',
+                confirmButtonText: '<i class="fa-solid fa-trash-can"></i> Iya Aci Hapus😒',
+                cancelButtonText: 'Masih Aci Pakai',
+                reverseButtons: true,
+                background: '#ffffff',
+                customClass: {
+                    popup: 'swal2-pink-border'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 1. Reset data di memory
+                    dataAbsensi = {};
+                    dataAbsensiPerFile = {};
+                    importedFilesList = [];
+                    periodeText = "";
+                    if (typeof rawFingerLogs !== 'undefined') rawFingerLogs = {};
+
+                    // 2. Langsung paksa sembunyikan badge merah periode dari layar
+                    const badge = document.getElementById('badgePeriode');
+                    const txt = document.getElementById('textPeriode');
+                    if (badge) badge.style.display = 'none';
+                    if (txt) txt.innerText = '-';
+
+                    // 3. Reset input file dan inisialisasi ulang
+                    const inputFile = document.getElementById('inputLogFile');
+                    if (inputFile) inputFile.value = '';
+
+                    initDataAbsensi();
+                    updateImportDropdownUI();
+                    renderAbsensiTable();
+                    saveToLocalStorage();
+
+                    Swal.fire({
+                        title: 'Data Berhasil  Uby Bersihkan!',
+                        text: 'File import lama uby telah dihapus. Sistem siap menerima file baru dari Aci🤗.',
+                        icon: 'success',
+                        confirmButtonColor: '#f78fb3',
+                        timer: 2800,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }, 750);
+    }
 }
 
 // ===============================================
@@ -794,9 +1130,7 @@ window.addEventListener('click', function(e) {
 
 // Jalankan Animasi
 animateHujan();
-// INIT PROGRAM
-initDataAbsensi();         // Siapkan struktur awal data
-loadFromLocalStorage();   // Muat data lama dari browser jika ada
-updateImportDropdownUI(); // Update UI dropdown hapus file
-renderKaryawanTable();    // Render tabel karyawan
+// Jalankan Animasi & Muat Data
+initDataAbsensi();
+loadFromLocalStorage(); // Fungsi ini akan otomatis me-render tabel setelah data dari Firebase selesai diambil
 
