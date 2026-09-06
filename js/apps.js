@@ -677,11 +677,11 @@ function getFormKaryawanHtml(k = {}) {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div>
                     <label style="font-weight: 600; font-size: 11px;">GAJI POKOK (Rp)</label>
-                    <input id="swalGapok" type="number" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" value="${k.gapok || '0'}" placeholder="0">
+                    <input id="swalGapok" type="number" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" value="${k.gapok || '0'}">
                 </div>
                 <div>
                     <label style="font-weight: 600; font-size: 11px;">TUNJANGAN (Rp)</label>
-                    <input id="swalTunj" type="number" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" value="${k.tunj || '0'}" placeholder="0">
+                    <input id="swalTunj" type="number" class="swal2-input" style="margin: 4px 0 0 0; width: 100%; height: 36px; font-size: 13px; border-radius: 8px;" value="${k.tunj || '0'}">
                 </div>
             </div>
         </div>
