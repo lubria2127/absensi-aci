@@ -329,12 +329,12 @@ function remapAbsensiDariRawLogs() {
     });
 
     // 2. Cocokkan raw scan log ke karyawan berdasarkan finger aktif
+    // Cocokkan raw scan log ke semua karyawan yang memiliki nama finger tersebut (mencegah bentrok duplikat)
     Object.keys(rawFingerLogs).forEach(fName => {
         let fUpper = fName.trim().toUpperCase();
-        // Cocokkan hanya ke nama finger yang persis sama
-        let k = listKaryawan.find(item => item.finger && item.finger.trim().toUpperCase() === fUpper);
+        let targetKaryawanList = listKaryawan.filter(item => item.finger && item.finger.trim().toUpperCase() === fUpper);
 
-        if (k) {
+        targetKaryawanList.forEach(k => {
             let logsPerTgl = rawFingerLogs[fName];
             Object.keys(logsPerTgl).forEach(dayNum => {
                 let d = logsPerTgl[dayNum];
@@ -344,7 +344,7 @@ function remapAbsensiDariRawLogs() {
                 dataAbsensi[k.id][dayNum].in = d.in;
                 dataAbsensi[k.id][dayNum].out = d.out;
             });
-        }
+        });
     });
 
     // 3. Render tabel & sinkronkan hasil kalkulasi
